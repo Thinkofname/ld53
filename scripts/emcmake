@@ -1,0 +1,7 @@
+#!/bin/sh
+
+if [ "$1" != "--build" ]; then
+    exec emcmake cmake "$@"
+else
+    exec cmake "$@"
+fi

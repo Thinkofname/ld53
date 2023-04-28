@@ -1,0 +1,6 @@
+{
+    "color-highlight.sass.includePaths": [],
+    "cmake.cmakePath": "${workspaceFolder}/scripts/emcmake",
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.generator": "Unix Makefiles"
+}
