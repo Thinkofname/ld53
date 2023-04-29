@@ -34,7 +34,7 @@ jobs:
         uses: actions/configure-pages@v3
       - name: Copy to ./_site
         # Outputs to the './_site' directory by default
-        run: mkdir -p _site/build && cp index.html ./_site && cp build/ld53* ./_site/build/
+        run: mkdir -p _site/build && cp index.html ./_site && cp build/ld53* ./_site/build/ && cp data ./_site/
       - name: Upload artifact
         # Automatically uploads an artifact from the './_site' directory by default
         uses: actions/upload-pages-artifact@v1

@@ -14,12 +14,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(flecs)
 
-# include_directories(/home/matt/.emscripten_cache/sysroot/include)
+include_directories(src)
 
-add_executable(ld53 src/main.cpp src/render.cpp)
+add_executable(ld53 src/main.cpp src/main.h
+        src/web/render.cpp src/web/render.h
+        src/web/input.cpp src/web/input.h
+        src/game/common.cpp src/game/common.h
+)
 target_link_libraries(ld53 flecs_static embind)
 
 set_target_properties(ld53 PROPERTIES LINK_FLAGS "-s ALLOW_MEMORY_GROWTH=1 -s EXPORTED_RUNTIME_METHODS=cwrap -s MODULARIZE=1 -s EXPORT_NAME=\"ld53\" -s INITIAL_MEMORY=256MB -s STACK_SIZE=256kb")
 
-set_target_properties(ld53 PROPERTIES LINK_FLAGS_DEBUG "-O0 -gsource-map --source-map-base=http://localhost:8000/")
+set_target_properties(ld53 PROPERTIES LINK_FLAGS_DEBUG "-O0 -g -gsource-map --source-map-base=http://localhost:8000/build/")
 set_target_properties(ld53 PROPERTIES LINK_FLAGS_RELEASE "-O3")
