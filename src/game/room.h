@@ -2,6 +2,7 @@
 
 #include <array>
 #include <flecs.h>
+#include <vector>
 
 namespace ld53::game {
 
@@ -17,6 +18,18 @@ struct Room {
   }
   void set_tile(int x, int y, flecs::entity_t tile) {
     tiles[x + y * ROOM_WIDTH] = tile;
+  }
+};
+
+struct RoomObjects {
+  // I'm not even going to pretend this is a good way of doing this
+  std::array<std::vector<flecs::entity_t>, ROOM_WIDTH * ROOM_HEIGHT> objects{};
+
+  const std::vector<flecs::entity_t> &get_objects(int x, int y) const {
+    return objects[x + y * ROOM_WIDTH];
+  }
+  std::vector<flecs::entity_t> &get_objects(int x, int y) {
+    return objects[x + y * ROOM_WIDTH];
   }
 };
 

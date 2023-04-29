@@ -49,7 +49,8 @@ makeRoom(flecs::world &ecs, const char *mapData,
 }
 
 void initRoom(flecs::world &ecs) {
-  ecs.component<Room>();
+  ecs.component<RoomObjects>().add(EcsAlwaysOverride);
+  ecs.component<Room>().add_second<RoomObjects>(flecs::With);
 
   auto grass = ecs.id<ld53::assets::Tileset::Grass>();
   auto top = ecs.id<ld53::assets::Tileset::TreeTop>();
@@ -100,7 +101,8 @@ void initRoom(flecs::world &ecs) {
                         .add<render::Image, assets::Tileset::Box>();
                     ecs.entity()
                         .emplace<GridPosition>(5, 6)
-                        .add<render::Image, assets::Tileset::Gate>();
+                        .add<render::Image, assets::Tileset::Gate>()
+                        .add(TileType::Solid);
                   });
 }
 } // namespace ld53::game

@@ -47,20 +47,36 @@ void initGame(flecs::world &ecs) {
       .kind(flecs::PreUpdate)
       .without<GridPosition, Previous>()
       .each([](flecs::entity e, const GridPosition &pos) {
-        e.emplace<GridPosition, Previous>(pos);
+        e.emplace<GridPosition, Previous>(-1, -1);
       });
 
-  ecs.system<const Room, GridPosition, const GridPosition>("validateMovement")
+  ecs.system<const Room, const RoomObjects, GridPosition, const GridPosition>(
+         "validateMovement")
       .kind(flecs::PostUpdate)
       .term_at(1)
       .parent()
-      .term_at(3)
+      .term_at(2)
+      .parent()
+      .term_at(4)
       .second<Previous>()
-      .each([](flecs::entity e, const Room &room, GridPosition &pos,
-               const GridPosition &prev) {
+      .each([](flecs::entity e, const Room &room, const RoomObjects &objs,
+               GridPosition &pos, const GridPosition &prev) {
         auto tile = e.world().entity(room.get_tile(pos.x, pos.y));
-        if (*tile.get<TileType>() == TileType::Solid) {
+        auto ty = tile.get<TileType>();
+        if (ty && *ty == TileType::Solid) {
           pos = prev;
+          return;
+        }
+        auto objects = objs.get_objects(pos.x, pos.y);
+        for (auto &ent : objects) {
+          auto obj = e.world().entity(ent);
+          if (e == obj)
+            continue;
+          auto ty = obj.get<TileType>();
+          if (ty && *ty == TileType::Solid) {
+            pos = prev;
+            break;
+          }
         }
       });
 
@@ -125,6 +141,24 @@ void initGame(flecs::world &ecs) {
         }
       });
 
+  ecs.system<RoomObjects, const GridPosition, const GridPosition>(
+         "updateObjectRoomMap")
+      .kind(flecs::PostUpdate)
+      .term_at(1)
+      .parent()
+      .term_at(3)
+      .second<Previous>()
+      .each([](flecs::entity e, RoomObjects &room, const GridPosition &pos,
+               const GridPosition &prev) {
+        if (pos.x == prev.x && pos.y == prev.y)
+          return;
+        if (prev.x != -1) {
+          auto &prevObjs = room.get_objects(prev.x, prev.y);
+          prevObjs.erase(std::find(prevObjs.begin(), prevObjs.end(), e));
+        }
+        auto &objs = room.get_objects(pos.x, pos.y);
+        objs.push_back(e);
+      });
   ecs.system<const GridPosition, GridPosition>("commitGridPos")
       .kind(flecs::PostUpdate)
       .term_at(2)
