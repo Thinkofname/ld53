@@ -20,6 +20,7 @@ add_executable(ld53 src/main.cpp src/main.h
         src/web/render.cpp src/web/render.h
         src/web/input.cpp src/web/input.h
         src/game/common.cpp src/game/common.h
+        src/game/room.cpp src/game/room.h
 )
 target_link_libraries(ld53 flecs_static embind)
 

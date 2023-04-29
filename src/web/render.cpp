@@ -1,136 +1,227 @@
 
 #include "render.h"
 
-#include <emscripten/val.h>
-#include <emscripten/html5.h>
 #include <emscripten/bind.h>
+#include <emscripten/html5.h>
+#include <emscripten/val.h>
 
-#include "main.h"
-#include "game/common.h"
 #include "assets.h"
+#include "game/common.h"
+#include "game/room.h"
+#include "main.h"
 
-namespace ld53::render
-{
+namespace ld53::render {
+constexpr int VIRTUAL_WIDTH = 320;
+constexpr int VIRTUAL_HEIGHT = 240;
 
-    struct Renderer
-    {
-        emscripten::val canvas;
-        emscripten::val ctx;
+struct Renderer {
+  emscripten::val canvas;
+  emscripten::val ctx;
 
-        int width, height;
-    };
+  int width, height;
+};
 
-    void initRenderer(flecs::iter &it)
-    {
-        printf("Starting renderer\n");
-        auto document = emscripten::val::global("document");
-        auto canvas = document.call<emscripten::val>("getElementById", emscripten::val("canvas"));
-        auto ctx = canvas.call<emscripten::val>("getContext", emscripten::val("2d"));
+struct HTMLImage {
+  struct IsLoaded {};
+  emscripten::val image;
+};
 
-        canvas.set("width", 800);
-        canvas.set("height", 600);
+struct RenderRoom {
+  emscripten::val canvas;
+};
 
-        it.world().emplace<Renderer>(canvas, ctx, 800, 600);
+void initRenderer(flecs::iter &it) {
+  printf("Starting renderer\n");
+  auto document = emscripten::val::global("document");
+  auto canvas = document.call<emscripten::val>("getElementById",
+                                               emscripten::val("canvas"));
+  auto ctx = canvas.call<emscripten::val>("getContext", emscripten::val("2d"));
+
+  canvas.set("width", 800);
+  canvas.set("height", 600);
+
+  ctx.set("imageSmoothingEnabled", false);
+
+  it.world().emplace<Renderer>(canvas, ctx, 800, 600);
+}
+
+void beginFrame(Renderer &renderer) {
+  renderer.width = renderer.canvas["clientWidth"].as<int>();
+  renderer.height = renderer.canvas["clientHeight"].as<int>();
+  renderer.canvas.set("width", renderer.width);
+  renderer.canvas.set("height", renderer.height);
+
+  auto &ctx = renderer.ctx;
+
+  ctx.call<void>("save");
+  // We need to make our game fit into the virtual screen and keep into
+  // that space. Even if the canvas shape isn't right for it.
+
+  auto targetAspect = (float)VIRTUAL_WIDTH / (float)VIRTUAL_HEIGHT;
+  auto currentAspect = (float)renderer.width / (float)renderer.height;
+
+  float scale = 1.0;
+  if (currentAspect > targetAspect) {
+    // Fit to height
+    scale = (float)renderer.height / (float)VIRTUAL_HEIGHT;
+  } else {
+    // Fit to width
+    scale = (float)renderer.width / (float)VIRTUAL_WIDTH;
+  }
+  float width = VIRTUAL_WIDTH * scale;
+  float height = VIRTUAL_HEIGHT * scale;
+
+  ctx.set("fillStyle", emscripten::val("#000000"));
+  ctx.call<void>("fillRect", 0, 0, renderer.width, renderer.height);
+
+  ctx.call<void>("translate", (renderer.width - width) / 2,
+                 (renderer.height - height) / 2);
+  ctx.call<void>("scale", scale, scale);
+
+  ctx.call<void>("beginPath");
+  ctx.call<void>("rect", 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+  ctx.call<void>("clip");
+
+  ctx.set("fillStyle", emscripten::val("#0044AA"));
+  ctx.call<void>("fillRect", 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
+}
+void endFrame(Renderer &renderer) {
+  auto &ctx = renderer.ctx;
+  ctx.call<void>("restore");
+}
+
+void drawBox(Renderer &renderer, const game::Position &pos) {
+  renderer.ctx.set("fillStyle", emscripten::val("red"));
+  renderer.ctx.call<void>("fillRect", pos.x, pos.y, 16, 16);
+}
+
+void drawImage(Renderer &renderer, const game::Position &pos,
+               const HTMLImage &img) {
+  renderer.ctx.call<void>("drawImage", img.image, pos.x, pos.y);
+}
+
+void aniTest(flecs::entity e, const Renderer &renderer, game::Position &pos) {
+  pos.x += 1;
+  pos.x %= VIRTUAL_WIDTH;
+}
+
+void loadImages(flecs::entity e, const ImageAsset &asset) {
+  auto document = emscripten::val::global("document");
+  auto img =
+      document.call<emscripten::val>("createElement", emscripten::val("img"));
+  img.set("src", emscripten::val(locateFile(asset.path)));
+  auto baseFunc = emscripten::val::module_property("on_image_load");
+  auto func = baseFunc.call<emscripten::val>(
+      "bind", emscripten::val::null(), (int)(e.remove_generation().raw_id()));
+  img.call<void>("addEventListener", emscripten::val("load"), func);
+
+  e.emplace<HTMLImage>(img);
+}
+
+void on_image_load(emscripten::val param, emscripten::val event) {
+  int id = param.as<int>();
+  printf("Image loaded for %d\n", id);
+  auto entity = gWorld->get_alive(id);
+  entity.add<HTMLImage::IsLoaded>();
+}
+
+void buildRoom(flecs::entity e, const game::Room &room) {
+  printf("Building render room\n");
+
+  auto document = emscripten::val::global("document");
+  auto canvas = document.call<emscripten::val>("createElement",
+                                               emscripten::val("canvas"));
+
+  canvas.set("width", VIRTUAL_WIDTH);
+  canvas.set("height", VIRTUAL_HEIGHT);
+
+  auto ctx = canvas.call<emscripten::val>("getContext", emscripten::val("2d"));
+  for (int y = 0; y < game::ROOM_HEIGHT; y++) {
+    for (int x = 0; x < game::ROOM_WIDTH; x++) {
+      auto tile = e.world().entity(room.get_tile(x, y));
+      if (!tile)
+        continue;
+      if (!tile.has<HTMLImage::IsLoaded>()) {
+        // TODO: Handle this better?
+        printf("Not all tiles loaded\n");
+        return;
+      }
+      if (auto section = tile.get<ImageTile>()) {
+        ctx.call<void>("drawImage", tile.get<HTMLImage>()->image,
+                       section->x * 16, section->y * 16, 16, 16, x * 16, y * 16,
+                       16, 16);
+      } else {
+        ctx.call<void>("drawImage", tile.get<HTMLImage>()->image, x * 16,
+                       y * 16);
+      }
     }
+  }
 
-    void beginFrame(Renderer &renderer)
-    {
-        renderer.width = renderer.canvas["clientWidth"].as<int>();
-        renderer.height = renderer.canvas["clientHeight"].as<int>();
-        renderer.canvas.set("width", renderer.width);
-        renderer.canvas.set("height", renderer.height);
-    }
+  e.emplace<RenderRoom>(canvas);
+}
 
-    void drawBox(Renderer &renderer, const game::Position &pos)
-    {
-        renderer.ctx.set("fillStyle", emscripten::val("red"));
-        renderer.ctx.call<void>("fillRect", pos.x, pos.y, 25, 25);
-    }
+void drawRoom(Renderer &renderer, const game::Position &pos,
+              const RenderRoom &room) {
+  renderer.ctx.call<void>("drawImage", room.canvas, pos.x, pos.y);
+}
+EMSCRIPTEN_BINDINGS(ld53) {
+  emscripten::function("on_image_load", on_image_load);
+}
 
-    void drawImage(Renderer &renderer, const game::Position &pos, const HTMLImage &img)
-    {
-        renderer.ctx.call<void>("drawImage", img.image, pos.x, pos.y);
-    }
+void initRender(flecs::world &ecs) {
+  ecs.component<Renderer>();
+  ecs.component<ImageAsset>().member<const char *>("path");
+  ecs.component<HTMLImage>();
+  ecs.component<HTMLImage::IsLoaded>();
+  ecs.component<Image>().add(flecs::Exclusive).add(flecs::Traversable);
 
-    void aniTest(flecs::entity e, const Renderer &renderer, game::Position &pos)
-    {
-        pos.x += 1;
-        pos.x %= renderer.width;
-    }
+  printf("Init renderer\n");
+  ecs.system<>("initRenderer")
+      .kind(flecs::OnStart)
+      .write<Renderer>()
+      .iter(initRenderer);
+  ecs.system<Renderer>("beginFrame").kind(flecs::PreStore).each(beginFrame);
+  ecs.system<Renderer>("endFrame").kind(flecs::PostFrame).each(endFrame);
 
-    void loadImages(flecs::entity e, const ImageAsset &asset)
-    {
-        auto document = emscripten::val::global("document");
-        auto img = document.call<emscripten::val>("createElement", emscripten::val("img"));
-        img.set("src", emscripten::val(locateFile(asset.path)));
-        auto baseFunc = emscripten::val::module_property("on_image_load");
-        auto func = baseFunc.call<emscripten::val>("bind", emscripten::val::null(), (int)(e.remove_generation().raw_id()));
-        img.call<void>("addEventListener", emscripten::val("load"), func);
+  ecs.system<Renderer, const game::Position, const RenderRoom>("drawRoom")
+      .kind(flecs::OnStore)
+      .term_at(1)
+      .singleton()
+      .term_at(2)
+      .second<game::World>()
+      .each(drawRoom);
 
-        e.emplace<HTMLImage>(img);
-    }
+  ecs.system<const ImageAsset>("loadImages")
+      .kind(flecs::PreFrame)
+      .term_at(1)
+      .self()
+      .without<HTMLImage>()
+      .write<HTMLImage>()
+      .each(loadImages);
+  ecs.system<Renderer, const game::Position, const HTMLImage>("drawImage")
+      .kind(flecs::OnStore)
+      .term_at(1)
+      .singleton()
+      .term_at(2)
+      .second<game::World>()
+      .term_at(3)
+      .up<Image>()
+      .with<HTMLImage::IsLoaded>()
+      .up<Image>()
+      .each(drawImage);
 
-    void on_image_load(emscripten::val param, emscripten::val event)
-    {
-        int id = param.as<int>();
-        printf("Image loaded for %d\n", id);
-        auto entity = gWorld->get_alive(id);
-        entity.add<HTMLImage::IsLoaded>();
-    }
+  ecs.system<const game::Room>("buildRoomRender")
+      .without<RenderRoom>()
+      .write<RenderRoom>()
+      .each(buildRoom);
+  ecs.system<const game::Room>("buildRoomRenderDirty")
+      .with<game::Room::IsDirty>()
+      .write<RenderRoom>()
+      .each(buildRoom);
 
-    EMSCRIPTEN_BINDINGS(ld53)
-    {
-        emscripten::function("on_image_load", on_image_load);
-    }
-
-    void initRender(flecs::world &ecs)
-    {
-        ecs.component<Renderer>();
-        ecs.component<ImageAsset>()
-            .member<const char *>("path");
-        ecs.component<HTMLImage>();
-        ecs.component<HTMLImage::IsLoaded>();
-        ecs.component<Image>().add(flecs::Exclusive).add(flecs::Traversable);
-
-        printf("Init renderer\n");
-        ecs.system<>("initRenderer")
-            .kind(flecs::OnStart)
-            .write<Renderer>()
-            .iter(initRenderer);
-        ecs.system<Renderer>("beginFrame")
-            .kind(flecs::PreStore)
-            .each(beginFrame);
-        ecs.system<Renderer, const game::Position>("drawBox")
-            .kind(flecs::OnStore)
-            .term_at(1)
-            .singleton()
-            .each(drawBox);
-
-        ecs.system<const Renderer, game::Position>("aniTest")
-            .kind(flecs::OnUpdate)
-            .term_at(1)
-            .singleton()
-            .each(aniTest);
-
-        ecs.system<const ImageAsset>("loadImages")
-            .kind(flecs::PreFrame)
-            .without<HTMLImage>()
-            .write<HTMLImage>()
-            .each(loadImages);
-        ecs.system<Renderer, const game::Position, const HTMLImage>("drawImage")
-            .kind(flecs::OnStore)
-            .term_at(1)
-            .singleton()
-            .term_at(3)
-            .up<Image>()
-            .with<HTMLImage::IsLoaded>()
-            .up<Image>()
-            .each(drawImage);
-
-        ecs.entity().emplace<game::Position>(5, 23);
-        ecs.entity().emplace<game::Position>(64, 100);
-
-        ecs.entity().emplace<game::Position>(250, 40).add<Image, ld53::assets::Test>();
-    }
+  ecs.entity()
+      .emplace<game::Position>(250, 40)
+      .add<Image, ld53::assets::Test>();
+}
 
 } // namespace ld53::render

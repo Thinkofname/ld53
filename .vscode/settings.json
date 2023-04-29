@@ -4,6 +4,7 @@
     "cmake.buildDirectory": "${workspaceFolder}/build",
     "cmake.generator": "Unix Makefiles",
     "editor.formatOnSave": true,
+    "editor.tabSize": 2,
     "files.associations": {
         "__bit_reference": "cpp",
         "__bits": "cpp",
