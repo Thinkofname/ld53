@@ -26,6 +26,8 @@ enum class TileType {
 
 struct MailObject {};
 
+struct ConnectedTo {};
+
 struct AnimationSet {
   flecs::entity_view walk_down{};
   flecs::entity_view walk_up{};

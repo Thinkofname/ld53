@@ -94,15 +94,16 @@ void initRoom(flecs::world &ecs) {
                         .emplace<GridPosition>(5, 3)
                         .add<render::Image, assets::Tileset::Mailbox>();
                     ecs.entity()
-                        .emplace<GridPosition>(11, 7)
-                        .add<render::Image, assets::Tileset::ButtonPlate>();
-                    ecs.entity()
                         .emplace<GridPosition>(14, 7)
                         .add<render::Image, assets::Tileset::Box>();
+                    auto gate = ecs.entity()
+                                    .emplace<GridPosition>(5, 6)
+                                    .add<render::Image, assets::Tileset::Gate>()
+                                    .add(TileType::Solid);
                     ecs.entity()
-                        .emplace<GridPosition>(5, 6)
-                        .add<render::Image, assets::Tileset::Gate>()
-                        .add(TileType::Solid);
+                        .emplace<GridPosition>(11, 7)
+                        .add<render::Image, assets::Tileset::ButtonPlate>()
+                        .add<ConnectedTo>(gate);
                   });
 }
 } // namespace ld53::game

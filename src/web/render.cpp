@@ -16,6 +16,8 @@ constexpr int VIRTUAL_HEIGHT = 240;
 
 struct Renderer {
   emscripten::val canvas;
+  emscripten::val backingCtx;
+  emscripten::val virtualCanvas;
   emscripten::val ctx;
 
   int width, height;
@@ -35,12 +37,17 @@ void initRenderer(flecs::iter &it) {
   auto document = emscripten::val::global("document");
   auto canvas = document.call<emscripten::val>("getElementById",
                                                emscripten::val("canvas"));
+  auto virtualCanvas = document.call<emscripten::val>(
+      "createElement", emscripten::val("canvas"));
   auto ctx = canvas.call<emscripten::val>("getContext", emscripten::val("2d"));
+  auto virtualCtx =
+      virtualCanvas.call<emscripten::val>("getContext", emscripten::val("2d"));
 
   canvas.set("width", 800);
   canvas.set("height", 600);
 
-  it.world().emplace<Renderer>(canvas, ctx, 800, 600);
+  it.world().emplace<Renderer>(canvas, ctx, virtualCanvas, virtualCtx, 800,
+                               600);
 }
 
 void beginFrame(Renderer &renderer) {
@@ -49,10 +56,20 @@ void beginFrame(Renderer &renderer) {
   renderer.canvas.set("width", renderer.width);
   renderer.canvas.set("height", renderer.height);
 
-  auto &ctx = renderer.ctx;
+  renderer.virtualCanvas.set("width", VIRTUAL_WIDTH);
+  renderer.virtualCanvas.set("height", VIRTUAL_HEIGHT);
 
+  auto &ctx = renderer.ctx;
   ctx.set("imageSmoothingEnabled", false);
+
   ctx.call<void>("save");
+}
+void endFrame(Renderer &renderer) {
+  renderer.ctx.call<void>("restore");
+
+  auto &ctx = renderer.backingCtx;
+  ctx.set("imageSmoothingEnabled", false);
+
   // We need to make our game fit into the virtual screen and keep into
   // that space. Even if the canvas shape isn't right for it.
 
@@ -73,20 +90,9 @@ void beginFrame(Renderer &renderer) {
   ctx.set("fillStyle", emscripten::val("#000000"));
   ctx.call<void>("fillRect", 0, 0, renderer.width, renderer.height);
 
-  ctx.call<void>("translate", (renderer.width - width) / 2,
-                 (renderer.height - height) / 2);
-  ctx.call<void>("scale", scale, scale);
-
-  ctx.call<void>("beginPath");
-  ctx.call<void>("rect", 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-  ctx.call<void>("clip");
-
-  ctx.set("fillStyle", emscripten::val("#0044AA"));
-  ctx.call<void>("fillRect", 0, 0, VIRTUAL_WIDTH, VIRTUAL_HEIGHT);
-}
-void endFrame(Renderer &renderer) {
-  auto &ctx = renderer.ctx;
-  ctx.call<void>("restore");
+  ctx.call<void>("drawImage", renderer.virtualCanvas,
+                 (renderer.width - width) / 2, (renderer.height - height) / 2,
+                 width, height);
 }
 
 void drawBox(Renderer &renderer, const game::Position &pos) {
