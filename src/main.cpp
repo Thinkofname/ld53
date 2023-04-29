@@ -65,25 +65,103 @@ void loadAssets(flecs::world &ecs) {
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(1, 1)
       .add(TileType::Solid);
+
+  ecs.entity<Tileset::Wall>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(4, 2)
+      .add(TileType::Solid);
+  ecs.entity<Tileset::WallBottom>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(4, 3)
+      .add(TileType::None);
+  ecs.entity<Tileset::Gate>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(5, 2)
+      .add(TileType::Solid);
+
+  ecs.entity<Tileset::Mail>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(0, 2)
+      .emplace<ld53::render::AnimatedTile>(2, 2.0f);
+  ecs.entity<Tileset::Mailbox>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(0, 3);
+  ecs.entity<Tileset::ButtonPlate>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(2, 2);
+  ecs.entity<Tileset::Box>().is_a<Tileset>().emplace<ld53::render::ImageTile>(
+      2, 3);
+
+  ecs.entity<Tileset::WireTB>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(3, 0)
+      .add(TileType::None);
+  ecs.entity<Tileset::WireLR>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(3, 1)
+      .add(TileType::None);
+  ecs.entity<Tileset::WireBR>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(4, 0)
+      .add(TileType::None);
+  ecs.entity<Tileset::WireTL>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(5, 0)
+      .add(TileType::None);
+  ecs.entity<Tileset::WireBL>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(4, 1)
+      .add(TileType::None);
+  ecs.entity<Tileset::WireTR>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(5, 1)
+      .add(TileType::None);
+
+  ecs.entity<Tileset::PlayerIdleDown>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 0);
+  ecs.entity<Tileset::PlayerWalkDown>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 0)
+      .emplace<ld53::render::AnimatedTile>(4, 8.0f);
+  ecs.entity<Tileset::PlayerIdleUp>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 1);
+  ecs.entity<Tileset::PlayerWalkUp>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 1)
+      .emplace<ld53::render::AnimatedTile>(4, 8.0f);
+  ecs.entity<Tileset::PlayerIdleLeft>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 2);
+  ecs.entity<Tileset::PlayerWalkLeft>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 2)
+      .emplace<ld53::render::AnimatedTile>(4, 8.0f);
+  ecs.entity<Tileset::PlayerIdleRight>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 3);
+  ecs.entity<Tileset::PlayerWalkRight>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(16, 3)
+      .emplace<ld53::render::AnimatedTile>(4, 8.0f);
 }
 
 namespace ld53 {
 std::string findLoc() {
-  auto maybeUrl = emscripten::val::module_property("base_url");
-  if (!maybeUrl.isString()) {
-    auto params =
-        emscripten::val::global("URLSearchParams")
-            .new_(emscripten::val::global("document")["location"]["search"]);
-    auto wasmUrl = params.call<emscripten::val>("get", emscripten::val("wasm"));
-    if (!wasmUrl.isString())
-      return "./";
-    auto wasm = wasmUrl.as<std::string>();
-    auto pos = wasm.find_last_of('/');
-    auto url = wasm.substr(0, pos) + "/../data/";
-    printf("URL: %s\n", url.c_str());
-    return url;
+  auto params =
+      emscripten::val::global("URLSearchParams")
+          .new_(emscripten::val::global("document")["location"]["search"]);
+  auto wasmUrl = params.call<emscripten::val>("get", emscripten::val("wasm"));
+  if (!wasmUrl.isString()) {
+    printf("Missing wasm url\n");
+    return "./data/";
   }
-  return maybeUrl.as<std::string>();
+  auto wasm = wasmUrl.as<std::string>();
+  auto pos = wasm.find_last_of('/');
+  auto url = wasm.substr(0, pos) + "/../data/";
+  printf("URL: %s\n", url.c_str());
+  return url;
 }
 
 std::string locateFile(const char *path) {

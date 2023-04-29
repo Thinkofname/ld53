@@ -8,10 +8,34 @@ struct Position {
   int x{0}, y{0};
 };
 struct World {};
+struct Previous {};
+
+struct GridPosition {
+  int x{0}, y{0};
+};
+
+enum class MovingState {
+  Inactive,
+  Active,
+};
 
 enum class TileType {
   None,
   Solid,
+};
+
+struct MailObject {};
+
+struct AnimationSet {
+  flecs::entity_view walk_down{};
+  flecs::entity_view walk_up{};
+  flecs::entity_view walk_left{};
+  flecs::entity_view walk_right{};
+
+  flecs::entity_view idle_down{};
+  flecs::entity_view idle_up{};
+  flecs::entity_view idle_left{};
+  flecs::entity_view idle_right{};
 };
 
 void initGame(flecs::world &ecs);

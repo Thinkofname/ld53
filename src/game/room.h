@@ -19,5 +19,10 @@ struct Room {
     tiles[x + y * ROOM_WIDTH] = tile;
   }
 };
+
+struct Rooms {
+  struct TestRoom {};
+};
+
 void initRoom(flecs::world &ecs);
 } // namespace ld53::game

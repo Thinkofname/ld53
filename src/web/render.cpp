@@ -40,8 +40,6 @@ void initRenderer(flecs::iter &it) {
   canvas.set("width", 800);
   canvas.set("height", 600);
 
-  ctx.set("imageSmoothingEnabled", false);
-
   it.world().emplace<Renderer>(canvas, ctx, 800, 600);
 }
 
@@ -53,6 +51,7 @@ void beginFrame(Renderer &renderer) {
 
   auto &ctx = renderer.ctx;
 
+  ctx.set("imageSmoothingEnabled", false);
   ctx.call<void>("save");
   // We need to make our game fit into the virtual screen and keep into
   // that space. Even if the canvas shape isn't right for it.
@@ -98,6 +97,32 @@ void drawBox(Renderer &renderer, const game::Position &pos) {
 void drawImage(Renderer &renderer, const game::Position &pos,
                const HTMLImage &img) {
   renderer.ctx.call<void>("drawImage", img.image, pos.x, pos.y);
+}
+void drawImageTile(Renderer &renderer, const game::Position &pos,
+                   const HTMLImage &img, const ImageTile &tile) {
+  renderer.ctx.call<void>("drawImage", img.image, tile.x * 16, tile.y * 16, 16,
+                          16, pos.x, pos.y, 16, 16);
+}
+void drawImageAnimatedTile(flecs::entity e, Renderer &renderer,
+                           const game::Position &pos, const HTMLImage &img,
+                           const ImageTile &tile, const AnimatedTile &ani,
+                           AnimatedTileState *state) {
+  if (!state)
+    state = e.get_mut<AnimatedTileState>();
+
+  state->nextFrame -= e.delta_time() * ani.rate;
+  if (state->nextFrame <= 0) {
+    state->nextFrame += 1;
+    state->frame = (state->frame + 1) % ani.frames;
+
+    // Safety in case of lag spike/pause on brower tab
+    if (state->nextFrame <= -5)
+      state->nextFrame = 0;
+  }
+
+  renderer.ctx.call<void>("drawImage", img.image,
+                          tile.x * 16 + state->frame * 16, tile.y * 16, 16, 16,
+                          pos.x, pos.y, 16, 16);
 }
 
 void aniTest(flecs::entity e, const Renderer &renderer, game::Position &pos) {
@@ -174,6 +199,11 @@ void initRender(flecs::world &ecs) {
   ecs.component<HTMLImage>();
   ecs.component<HTMLImage::IsLoaded>();
   ecs.component<Image>().add(flecs::Exclusive).add(flecs::Traversable);
+  ecs.component<DependsOn>().add(flecs::Traversable);
+  ecs.component<ImageTile>().member<int>("x").member<int>("y");
+  ecs.component<AnimatedTile>().member<int>("frames").member<float>("rate");
+  ecs.component<AnimatedTileState>().member<int>("frame").member<float>(
+      "nextFrame");
 
   printf("Init renderer\n");
   ecs.system<>("initRenderer")
@@ -208,20 +238,59 @@ void initRender(flecs::world &ecs) {
       .up<Image>()
       .with<HTMLImage::IsLoaded>()
       .up<Image>()
+      .without<ImageTile>()
+      .self()
+      .up<Image>()
       .each(drawImage);
+  ecs.system<Renderer, const game::Position, const HTMLImage, const ImageTile>(
+         "drawImageTile")
+      .kind(flecs::OnStore)
+      .term_at(1)
+      .singleton()
+      .term_at(2)
+      .second<game::World>()
+      .term_at(3)
+      .up<Image>()
+      .with<HTMLImage::IsLoaded>()
+      .up<Image>()
+      .term_at(4)
+      .self()
+      .up<Image>()
+      .without<AnimatedTile>()
+      .self()
+      .up<Image>()
+      .each(drawImageTile);
+  ecs.system<Renderer, const game::Position, const HTMLImage, const ImageTile,
+             const AnimatedTile, AnimatedTileState *>("drawImageAnimatedTile")
+      .kind(flecs::OnStore)
+      .term_at(1)
+      .singleton()
+      .term_at(2)
+      .second<game::World>()
+      .term_at(3)
+      .up<Image>()
+      .with<HTMLImage::IsLoaded>()
+      .up<Image>()
+      .term_at(4)
+      .self()
+      .up<Image>()
+      .term_at(5)
+      .self()
+      .up<Image>()
+      .each(drawImageAnimatedTile);
 
   ecs.system<const game::Room>("buildRoomRender")
       .without<RenderRoom>()
       .write<RenderRoom>()
+      .with<HTMLImage::IsLoaded>()
+      .up<DependsOn>()
       .each(buildRoom);
   ecs.system<const game::Room>("buildRoomRenderDirty")
       .with<game::Room::IsDirty>()
       .write<RenderRoom>()
+      .with<HTMLImage::IsLoaded>()
+      .up<DependsOn>()
       .each(buildRoom);
-
-  ecs.entity()
-      .emplace<game::Position>(250, 40)
-      .add<Image, ld53::assets::Test>();
 }
 
 } // namespace ld53::render

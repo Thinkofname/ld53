@@ -10,7 +10,7 @@ add_compile_definitions(EMSCRIPTEN_KEEPALIVE=__attribute__\(\(used\)\))
 
 FetchContent_Declare(
         flecs
-        URL https://github.com/SanderMertens/flecs/archive/e7c40b90f8d68b3fe22933dafeaf5bdb6b7a6f4e.tar.gz # master
+        URL https://github.com/SanderMertens/flecs/archive/2e4c12341daac8bbcccb2ff9c333d2a9a5169cd5.tar.gz # master
 )
 FetchContent_MakeAvailable(flecs)
 
@@ -21,6 +21,7 @@ add_executable(ld53 src/main.cpp src/main.h
         src/web/input.cpp src/web/input.h
         src/game/common.cpp src/game/common.h
         src/game/room.cpp src/game/room.h
+        src/game/player.cpp src/game/player.h
 )
 target_link_libraries(ld53 flecs_static embind)
 
