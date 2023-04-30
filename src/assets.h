@@ -2,9 +2,11 @@
 
 namespace ld53::assets {
 struct Tutorial {};
+struct EndingScreen {};
 struct Tileset {
   struct Grass {};
   struct GrassWithStone {};
+  struct GrassTall {};
 
   struct TreeTop {};
   struct TreeBottom {};

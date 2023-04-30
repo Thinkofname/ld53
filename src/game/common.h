@@ -38,6 +38,7 @@ struct Weighted {};
 struct WeightActivated {};
 struct ActivatedBy {};
 struct Gate {};
+struct Inverted {};
 
 struct Holding {};
 

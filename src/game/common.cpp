@@ -320,6 +320,7 @@ void initGame(flecs::world &ecs) {
 
   ecs.system<>("openGate")
       .with<Gate>()
+      .without<Inverted>()
       .with<ActivatedBy>(flecs::Any)
       .each([](flecs::entity e) {
         e.add<render::Image, assets::Tileset::GateOpened>();
@@ -327,7 +328,25 @@ void initGame(flecs::world &ecs) {
       });
   ecs.system<>("closeGate")
       .with<Gate>()
+      .without<Inverted>()
       .without<ActivatedBy>(flecs::Any)
+      .each([](flecs::entity e) {
+        e.add<render::Image, assets::Tileset::Gate>();
+        e.add(TileType::Solid);
+      });
+
+  ecs.system<>("openGateInv")
+      .with<Gate>()
+      .with<Inverted>()
+      .without<ActivatedBy>(flecs::Any)
+      .each([](flecs::entity e) {
+        e.add<render::Image, assets::Tileset::GateOpened>();
+        e.add(TileType::None);
+      });
+  ecs.system<>("closeGateInv")
+      .with<Gate>()
+      .with<Inverted>()
+      .with<ActivatedBy>(flecs::Any)
       .each([](flecs::entity e) {
         e.add<render::Image, assets::Tileset::Gate>();
         e.add(TileType::Solid);

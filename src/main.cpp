@@ -42,6 +42,7 @@ void loadAssets(flecs::world &ecs) {
   using namespace ld53::assets;
   using namespace ld53::game;
   ecs.entity<Tutorial>().emplace<ld53::render::ImageAsset>("tutorial.png");
+  ecs.entity<EndingScreen>().emplace<ld53::render::ImageAsset>("ending.png");
   ecs.entity<Tileset>().emplace<ld53::render::ImageAsset>("tileset.png");
 
   ecs.entity<Tileset::Grass>()
@@ -52,6 +53,10 @@ void loadAssets(flecs::world &ecs) {
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(1, 0)
       .add(TileType::None);
+  ecs.entity<Tileset::GrassTall>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(1, 4)
+      .add(TileType::SolidPlayer);
 
   ecs.entity<Tileset::TreeTop>()
       .is_a<Tileset>()

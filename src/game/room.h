@@ -41,7 +41,11 @@ struct Rooms {
   struct Level1 {};
   struct Level2 {};
   struct Level3 {};
+  struct Level4 {};
+  struct Level5 {};
+  struct EndingScreen {};
 };
+using InitialRoom = Rooms::Level1;
 
 struct RoomInstances {};
 struct CurrentRoomType {};

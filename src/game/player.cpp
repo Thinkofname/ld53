@@ -19,9 +19,9 @@ void initPlayer(flecs::world &ecs) {
       .member<bool>("left")
       .member<bool>("right");
 
-  auto room = ecs.entity().is_a<Rooms::Level1>().child_of<RoomInstances>();
+  auto room = ecs.entity().is_a<InitialRoom>().child_of<RoomInstances>();
   ecs.add<CurrentRoom>(room);
-  ecs.add<CurrentRoomType, Rooms::Level1>();
+  ecs.add<CurrentRoomType, InitialRoom>();
   ecs.entity<Player>()
       .emplace<Position>(18 * 16, 7 * 16)
       .emplace<GridPosition>(16, 7)
