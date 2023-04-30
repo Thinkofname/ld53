@@ -18,6 +18,8 @@ std::optional<InputType> mapKey(std::string_view key) {
     type = InputType::Left;
   else if (key == "KeyD" || key == "ArrowRight")
     type = InputType::Right;
+  else if (key == "KeyF")
+    type = InputType::Fire;
   else if (key == "KeyR")
     type = InputType::Restart;
   else
@@ -28,7 +30,6 @@ std::optional<InputType> mapKey(std::string_view key) {
 
 bool event_keyup(emscripten::val event) {
   auto key = event["code"].as<std::string>();
-  printf("Got event: %s\n", key.c_str());
 
   auto type = mapKey(key);
   if (!type)
@@ -39,7 +40,6 @@ bool event_keyup(emscripten::val event) {
 }
 bool event_keydown(emscripten::val event) {
   auto key = event["code"].as<std::string>();
-  printf("Got event: %s\n", key.c_str());
 
   auto type = mapKey(key);
   if (!type)
@@ -74,7 +74,9 @@ void initInput(flecs::world &ecs) {
       .constant("Up", (int32_t)InputType::Up)
       .constant("Down", (int32_t)InputType::Down)
       .constant("Left", (int32_t)InputType::Left)
-      .constant("Right", (int32_t)InputType::Right);
+      .constant("Right", (int32_t)InputType::Right)
+      .constant("Fire", (int32_t)InputType::Fire)
+      .constant("Restart", (int32_t)InputType::Restart);
   ecs.component<InputData>().member<bool>("pressed").member<InputType>("type");
 
   ecs.system<>("cleanupInputData")

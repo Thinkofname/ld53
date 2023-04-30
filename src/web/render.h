@@ -25,5 +25,11 @@ struct AnimatedTileState {
   float nextFrame{1.0};
 };
 
+struct Depth {
+  struct Background {};
+  struct Movable {};
+  struct Player {};
+};
+
 void initRender(flecs::world &ecs);
 } // namespace ld53::render

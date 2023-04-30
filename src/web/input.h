@@ -9,6 +9,7 @@ enum class InputType {
   Down,
   Left,
   Right,
+  Fire,
   Restart,
 };
 

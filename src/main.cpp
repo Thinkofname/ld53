@@ -90,6 +90,9 @@ void loadAssets(flecs::world &ecs) {
   ecs.entity<Tileset::Mailbox>()
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(0, 3);
+  ecs.entity<Tileset::MailboxFull>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(0, 4);
   ecs.entity<Tileset::ButtonPlate>()
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(2, 2);

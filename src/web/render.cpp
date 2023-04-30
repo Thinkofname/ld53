@@ -211,6 +211,11 @@ void initRender(flecs::world &ecs) {
   ecs.component<AnimatedTileState>().member<int>("frame").member<float>(
       "nextFrame");
 
+  ecs.component<Depth>().add(flecs::Exclusive);
+  ecs.component<Depth::Background>();
+  ecs.component<Depth::Movable>();
+  ecs.component<Depth::Player>();
+
   printf("Init renderer\n");
   ecs.system<>("initRenderer")
       .kind(flecs::OnStart)
@@ -265,6 +270,7 @@ void initRender(flecs::world &ecs) {
       .without<AnimatedTile>()
       .self()
       .up<Image>()
+      .group_by<Depth>()
       .each(drawImageTile);
   ecs.system<Renderer, const game::Position, const HTMLImage, const ImageTile,
              const AnimatedTile, AnimatedTileState *>("drawImageAnimatedTile")
@@ -284,6 +290,23 @@ void initRender(flecs::world &ecs) {
       .self()
       .up<Image>()
       .each(drawImageAnimatedTile);
+
+  ecs.system<Renderer, const game::Position, const HTMLImage>("drawMailIcon")
+      .kind(flecs::OnStore)
+      .term_at(1)
+      .singleton()
+      .term_at(2)
+      .second<game::World>()
+      .term_at(3)
+      .up<Image>()
+      .with<HTMLImage::IsLoaded>()
+      .up<Image>()
+      .with<game::Holding>(flecs::Any)
+      .each([](Renderer &renderer, const game::Position &pos,
+               const HTMLImage &image) {
+        renderer.ctx.call<void>("drawImage", image.image, 16, 3 * 16, 16, 16,
+                                pos.x, pos.y - 8, 16, 16);
+      });
 
   ecs.system<const game::Room>("buildRoomRender")
       .without<RenderRoom>()

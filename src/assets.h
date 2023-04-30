@@ -12,6 +12,7 @@ struct Tileset {
 
   struct Mail {};
   struct Mailbox {};
+  struct MailboxFull {};
 
   struct ButtonPlate {};
   struct ButtonPlatePressed {};

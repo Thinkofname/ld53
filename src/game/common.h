@@ -25,6 +25,9 @@ enum class TileType {
 };
 
 struct MailObject {};
+struct MailBox {
+  struct Full {};
+};
 
 struct ConnectedTo {};
 
@@ -34,6 +37,12 @@ struct Weighted {};
 struct WeightActivated {};
 struct ActivatedBy {};
 struct Gate {};
+
+struct Holding {};
+
+struct Velocity {
+  int x{0}, y{0};
+};
 
 struct AnimationSet {
   flecs::entity_view walk_down{};

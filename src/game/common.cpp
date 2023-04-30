@@ -17,6 +17,7 @@ void initGame(flecs::world &ecs) {
   ecs.component<GridPosition>().member<int>("x").member<int>("y");
   ecs.component<CurrentRoom>().add(flecs::Exclusive);
   ecs.component<CurrentRoomType>().add(flecs::Exclusive);
+  ecs.component<Velocity>().member<int>("x").member<int>("y");
 
   ecs.component<AnimationSet>()
       .member<flecs::entity_view>("walk_down")
@@ -28,6 +29,13 @@ void initGame(flecs::world &ecs) {
       .member<flecs::entity_view>("idle_left")
       .member<flecs::entity_view>("idle_right")
       .add_second<LastDirAnimation>(flecs::With);
+
+  ecs.system<const Velocity, GridPosition>("moveVelocity")
+      .with(MovingState::Inactive)
+      .each([](flecs::entity e, const Velocity &velocity, GridPosition &grid) {
+        grid.x += velocity.x;
+        grid.y += velocity.y;
+      });
 
   ecs.system<const GridPosition>("setPosition")
       .kind(flecs::PreUpdate)
@@ -58,6 +66,7 @@ void initGame(flecs::world &ecs) {
         auto ty = tile.get<TileType>();
         if (ty && *ty == TileType::Solid) {
           pos = prev;
+          e.remove<Velocity>();
           return;
         }
         auto objects = objs.get_objects(pos.x, pos.y);
@@ -68,6 +77,7 @@ void initGame(flecs::world &ecs) {
           auto ty = obj.get<TileType>();
           if (ty && *ty == TileType::Solid) {
             pos = prev;
+            e.remove<Velocity>();
             break;
           }
         }
@@ -134,6 +144,28 @@ void initGame(flecs::world &ecs) {
         }
       });
 
+  ecs.system<RoomObjects, const GridPosition, GridPosition>("removeDisabled")
+      .kind(flecs::PostUpdate)
+      .term_at(1)
+      .parent()
+      .term_at(3)
+      .second<Previous>()
+      .with(flecs::Disabled)
+      .each([](flecs::entity e, RoomObjects &room, const GridPosition &pos,
+               GridPosition &prev) {
+        if (prev.x != -1) {
+          auto &prevObjs = room.get_objects(prev.x, prev.y);
+          auto it = std::find(prevObjs.begin(), prevObjs.end(), e);
+          if (it != prevObjs.end())
+            prevObjs.erase(it);
+          prev.x = -1;
+          prev.y = -1;
+        }
+        auto &objs = room.get_objects(pos.x, pos.y);
+        auto it = std::find(objs.begin(), objs.end(), e);
+        if (it != objs.end())
+          objs.erase(it);
+      });
   ecs.system<RoomObjects, const GridPosition, const GridPosition>(
          "updateObjectRoomMap")
       .kind(flecs::PostUpdate)
@@ -249,6 +281,38 @@ void initGame(flecs::world &ecs) {
             }
           }
         });
+      });
+
+  ecs.system<const GridPosition, const RoomObjects>("handInMail")
+      .term_at(2)
+      .parent()
+      .with<MailBox>()
+      .without<MailBox::Full>()
+      .each([](flecs::entity e, const GridPosition &grid,
+               const RoomObjects &objects) {
+        auto &list = objects.get_objects(grid.x, grid.y);
+        for (auto o : list) {
+          auto obj = e.world().entity(o);
+          if (!obj.has<MailObject>())
+            continue;
+          e.add<MailBox::Full>();
+          e.add<render::Image, assets::Tileset::MailboxFull>();
+          obj.disable();
+        }
+      });
+
+  ecs.system<const GridPosition, const GridPosition>("pickupMail")
+      .term_at(2)
+      .src<Player>()
+      .with<MailObject>()
+      .each([](flecs::entity e, const GridPosition &grid,
+               const GridPosition &playerPos) {
+        auto player = e.world().entity<Player>();
+        if (grid.x != playerPos.x || grid.y != playerPos.y ||
+            player.has<Holding>(flecs::Any))
+          return;
+        player.add<Holding>(e);
+        e.disable();
       });
 
   ecs.system<>("openGate")
