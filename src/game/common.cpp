@@ -63,8 +63,10 @@ void initGame(flecs::world &ecs) {
       .each([](flecs::entity e, const Room &room, const RoomObjects &objs,
                GridPosition &pos, const GridPosition &prev) {
         auto tile = e.world().entity(room.get_tile(pos.x, pos.y));
+        auto isPlayer = e.world().entity<Player>() == e;
         auto ty = tile.get<TileType>();
-        if (ty && *ty == TileType::Solid) {
+        if (ty && (*ty == TileType::Solid ||
+                   (isPlayer && *ty == TileType::SolidPlayer))) {
           pos = prev;
           e.remove<Velocity>();
           return;
@@ -75,7 +77,8 @@ void initGame(flecs::world &ecs) {
           if (e == obj)
             continue;
           auto ty = obj.get<TileType>();
-          if (ty && *ty == TileType::Solid) {
+          if (ty && (*ty == TileType::Solid ||
+                     (isPlayer && *ty == TileType::SolidPlayer))) {
             pos = prev;
             e.remove<Velocity>();
             break;

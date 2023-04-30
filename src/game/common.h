@@ -22,6 +22,7 @@ enum class MovingState {
 enum class TileType {
   None,
   Solid,
+  SolidPlayer,
 };
 
 struct MailObject {};

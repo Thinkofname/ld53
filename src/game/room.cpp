@@ -76,7 +76,8 @@ void initRoom(flecs::world &ecs) {
       .add<render::Image, assets::Tileset::Mailbox>()
       // TODO: Work out why this is needed?
       .override<render::Image, assets::Tileset::Mailbox>()
-      .add<MailBox>();
+      .add<MailBox>()
+      .add(TileType::SolidPlayer);
   ecs.prefab<Prefab::Mail>()
       .add<MailObject>()
       .add<render::Image, assets::Tileset::Mail>()
