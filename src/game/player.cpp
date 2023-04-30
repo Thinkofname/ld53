@@ -19,12 +19,17 @@ void initPlayer(flecs::world &ecs) {
       .member<bool>("left")
       .member<bool>("right");
 
+  auto room = ecs.entity().is_a<Rooms::TestRoom>().child_of<RoomInstances>();
+  ecs.add<CurrentRoom>(room);
+  ecs.add<CurrentRoomType, Rooms::TestRoom>();
   ecs.entity<Player>()
-      .emplace<Position>(256, 64)
-      .emplace<GridPosition>(15, 9)
+      .emplace<Position>(18 * 16, 7 * 16)
+      .emplace<GridPosition>(16, 7)
       .add<render::Image, assets::Tileset::PlayerIdleDown>()
       .add<PlayerMovementState>()
       .add(MovingState::Inactive)
+      .add<CanPush>()
+      .add<Weighted>()
       .set([&](AnimationSet &set) {
         set.idle_down = ecs.entity<assets::Tileset::PlayerIdleDown>().view();
         set.walk_down = ecs.entity<assets::Tileset::PlayerWalkDown>().view();
@@ -35,25 +40,54 @@ void initPlayer(flecs::world &ecs) {
         set.idle_right = ecs.entity<assets::Tileset::PlayerIdleRight>().view();
         set.walk_right = ecs.entity<assets::Tileset::PlayerWalkRight>().view();
       })
-      .child_of(ecs.entity("TestRoomInstance").is_a<Rooms::TestRoom>());
+      .child_of(room);
 
-  ecs.system<PlayerMovementState, const input::InputData>("updateMovementState")
+  ecs.system<PlayerMovementState, const input::InputData, LastDirAnimation>(
+         "processPlayerInput")
       .kind(flecs::PreUpdate)
       .term_at(1)
       .src<Player>()
-      .each([](PlayerMovementState &state, const input::InputData &data) {
+      .term_at(3)
+      .src<Player>()
+      .each([](flecs::entity e, PlayerMovementState &state,
+               const input::InputData &data, LastDirAnimation &dir) {
+        auto ecs = e.world();
         switch (data.type) {
         case input::InputType::Up:
           state.up = data.pressed;
+          dir.direction = LastDirAnimation::Direction::Up;
           break;
         case input::InputType::Down:
           state.down = data.pressed;
+          dir.direction = LastDirAnimation::Direction::Down;
           break;
         case input::InputType::Left:
           state.left = data.pressed;
+          dir.direction = LastDirAnimation::Direction::Left;
           break;
         case input::InputType::Right:
           state.right = data.pressed;
+          dir.direction = LastDirAnimation::Direction::Right;
+          break;
+        case input::InputType::Restart:
+          if (data.pressed)
+            return;
+          auto room = ecs.entity()
+                          .is_a(ecs.singleton<CurrentRoomType>()
+                                    .target<CurrentRoomType>())
+                          .child_of<RoomInstances>();
+          auto prev = ecs.singleton<CurrentRoom>().target<CurrentRoom>();
+          ecs.add<CurrentRoom>(room);
+
+          e.world()
+              .entity<Player>()
+              .set<Position>({18 * 16, 7 * 16})
+              .set<GridPosition>({16, 7})
+              .set<GridPosition, Previous>({-1, -1})
+              .child_of(room);
+
+          prev.destruct();
+
           break;
         }
       });

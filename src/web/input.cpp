@@ -18,6 +18,8 @@ std::optional<InputType> mapKey(std::string_view key) {
     type = InputType::Left;
   else if (key == "KeyD" || key == "ArrowRight")
     type = InputType::Right;
+  else if (key == "KeyR")
+    type = InputType::Restart;
   else
     return {};
 

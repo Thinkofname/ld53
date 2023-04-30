@@ -14,11 +14,13 @@ struct Tileset {
   struct Mailbox {};
 
   struct ButtonPlate {};
+  struct ButtonPlatePressed {};
   struct Box {};
 
   struct Wall {};
   struct WallBottom {};
   struct Gate {};
+  struct GateOpened {};
 
   struct PlayerIdleDown {};
   struct PlayerWalkDown {};

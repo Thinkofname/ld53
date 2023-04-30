@@ -78,6 +78,10 @@ void loadAssets(flecs::world &ecs) {
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(5, 2)
       .add(TileType::Solid);
+  ecs.entity<Tileset::GateOpened>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(5, 3)
+      .add(TileType::Solid);
 
   ecs.entity<Tileset::Mail>()
       .is_a<Tileset>()
@@ -89,6 +93,9 @@ void loadAssets(flecs::world &ecs) {
   ecs.entity<Tileset::ButtonPlate>()
       .is_a<Tileset>()
       .emplace<ld53::render::ImageTile>(2, 2);
+  ecs.entity<Tileset::ButtonPlatePressed>()
+      .is_a<Tileset>()
+      .emplace<ld53::render::ImageTile>(3, 2);
   ecs.entity<Tileset::Box>().is_a<Tileset>().emplace<ld53::render::ImageTile>(
       2, 3);
 

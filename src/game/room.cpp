@@ -89,21 +89,27 @@ void initRoom(flecs::world &ecs) {
                     ecs.entity("MailTest")
                         .add<MailObject>()
                         .emplace<GridPosition>(10, 9)
-                        .add<render::Image, assets::Tileset::Mail>();
+                        .add<render::Image, assets::Tileset::Mail>()
+                        .add<Weighted>();
                     ecs.entity()
                         .emplace<GridPosition>(5, 3)
                         .add<render::Image, assets::Tileset::Mailbox>();
                     ecs.entity()
                         .emplace<GridPosition>(14, 7)
-                        .add<render::Image, assets::Tileset::Box>();
+                        .add<render::Image, assets::Tileset::Box>()
+                        .add(TileType::Solid)
+                        .add<Pushable>()
+                        .add<Weighted>();
                     auto gate = ecs.entity()
                                     .emplace<GridPosition>(5, 6)
                                     .add<render::Image, assets::Tileset::Gate>()
+                                    .add<Gate>()
                                     .add(TileType::Solid);
                     ecs.entity()
                         .emplace<GridPosition>(11, 7)
                         .add<render::Image, assets::Tileset::ButtonPlate>()
-                        .add<ConnectedTo>(gate);
+                        .add<ConnectedTo>(gate)
+                        .add<WeightActivated>();
                   });
 }
 } // namespace ld53::game

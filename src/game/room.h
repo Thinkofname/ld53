@@ -26,9 +26,13 @@ struct RoomObjects {
   std::array<std::vector<flecs::entity_t>, ROOM_WIDTH * ROOM_HEIGHT> objects{};
 
   const std::vector<flecs::entity_t> &get_objects(int x, int y) const {
+    assert(x >= 0 && x < ROOM_WIDTH);
+    assert(y >= 0 && y < ROOM_HEIGHT);
     return objects[x + y * ROOM_WIDTH];
   }
   std::vector<flecs::entity_t> &get_objects(int x, int y) {
+    assert(x >= 0 && x < ROOM_WIDTH);
+    assert(y >= 0 && y < ROOM_HEIGHT);
     return objects[x + y * ROOM_WIDTH];
   }
 };
@@ -36,6 +40,10 @@ struct RoomObjects {
 struct Rooms {
   struct TestRoom {};
 };
+
+struct RoomInstances {};
+struct CurrentRoomType {};
+struct CurrentRoom {};
 
 void initRoom(flecs::world &ecs);
 } // namespace ld53::game

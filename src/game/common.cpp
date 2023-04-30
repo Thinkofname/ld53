@@ -9,21 +9,14 @@
 
 namespace ld53::game {
 
-struct LastDirAnimation {
-  enum class Direction {
-    Up,
-    Down,
-    Left,
-    Right,
-  } direction;
-};
-
 void initGame(flecs::world &ecs) {
   ecs.component<Position>().member<int>("x").member<int>("y");
   ecs.component<TileType>().add(flecs::Exclusive);
   ecs.component<World>();
   ecs.component<MovingState>();
   ecs.component<GridPosition>().member<int>("x").member<int>("y");
+  ecs.component<CurrentRoom>().add(flecs::Exclusive);
+  ecs.component<CurrentRoomType>().add(flecs::Exclusive);
 
   ecs.component<AnimationSet>()
       .member<flecs::entity_view>("walk_down")
@@ -154,7 +147,9 @@ void initGame(flecs::world &ecs) {
           return;
         if (prev.x != -1) {
           auto &prevObjs = room.get_objects(prev.x, prev.y);
-          prevObjs.erase(std::find(prevObjs.begin(), prevObjs.end(), e));
+          auto it = std::find(prevObjs.begin(), prevObjs.end(), e);
+          if (it != prevObjs.end())
+            prevObjs.erase(it);
         }
         auto &objs = room.get_objects(pos.x, pos.y);
         objs.push_back(e);
@@ -197,5 +192,78 @@ void initGame(flecs::world &ecs) {
 
   initRoom(ecs);
   initPlayer(ecs);
+
+  ecs.system<const GridPosition, const GridPosition, const RoomObjects>(
+         "pushObjects")
+      .term_at(2)
+      .second<Previous>()
+      .term_at(3)
+      .parent()
+      .with<CanPush>()
+      .each([](flecs::entity e, const GridPosition &grid,
+               const GridPosition &prev, const RoomObjects &objects) {
+        auto &objs = objects.get_objects(grid.x, grid.y);
+        auto dx = grid.x - prev.x;
+        auto dy = grid.y - prev.y;
+        for (auto &o : objs) {
+          auto obj = e.world().entity(o);
+          if (!obj.has<Pushable>())
+            continue;
+
+          auto ogrid = obj.get_mut<GridPosition>();
+          ogrid->x += dx;
+          ogrid->y += dy;
+        }
+      });
+  ecs.system<const GridPosition, const RoomObjects>("activateOnWeight")
+      .term_at(2)
+      .parent()
+      .with<WeightActivated>()
+      .each([](flecs::entity e, const GridPosition &grid,
+               const RoomObjects &objects) {
+        auto &objs = objects.get_objects(grid.x, grid.y);
+        bool active = false;
+        for (auto &o : objs) {
+          auto obj = e.world().entity(o);
+          if (!obj.has<Weighted>())
+            continue;
+          active = true;
+          break;
+        }
+        if (active) {
+          e.add<render::Image, assets::Tileset::ButtonPlatePressed>();
+        } else {
+          e.add<render::Image, assets::Tileset::ButtonPlate>();
+        }
+        e.each<ConnectedTo>([&](flecs::entity o) {
+          // TODO: Need to lookup due to prefabs not changing this relation
+          auto pos = o.get<GridPosition>();
+          auto &list = objects.get_objects(pos->x, pos->y);
+
+          for (auto &l : list) {
+            auto lEntity = e.world().entity(l);
+            if (active) {
+              lEntity.add<ActivatedBy>(e);
+            } else {
+              lEntity.remove<ActivatedBy>(e);
+            }
+          }
+        });
+      });
+
+  ecs.system<>("openGate")
+      .with<Gate>()
+      .with<ActivatedBy>(flecs::Any)
+      .each([](flecs::entity e) {
+        e.add<render::Image, assets::Tileset::GateOpened>();
+        e.add(TileType::None);
+      });
+  ecs.system<>("closeGate")
+      .with<Gate>()
+      .without<ActivatedBy>(flecs::Any)
+      .each([](flecs::entity e) {
+        e.add<render::Image, assets::Tileset::Gate>();
+        e.add(TileType::Solid);
+      });
 }
 } // namespace ld53::game

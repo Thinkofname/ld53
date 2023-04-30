@@ -28,6 +28,13 @@ struct MailObject {};
 
 struct ConnectedTo {};
 
+struct Pushable {};
+struct CanPush {};
+struct Weighted {};
+struct WeightActivated {};
+struct ActivatedBy {};
+struct Gate {};
+
 struct AnimationSet {
   flecs::entity_view walk_down{};
   flecs::entity_view walk_up{};
@@ -38,6 +45,15 @@ struct AnimationSet {
   flecs::entity_view idle_up{};
   flecs::entity_view idle_left{};
   flecs::entity_view idle_right{};
+};
+
+struct LastDirAnimation {
+  enum class Direction {
+    Up,
+    Down,
+    Left,
+    Right,
+  } direction;
 };
 
 void initGame(flecs::world &ecs);
