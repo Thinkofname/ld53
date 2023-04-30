@@ -41,7 +41,7 @@ int main(void) {
 void loadAssets(flecs::world &ecs) {
   using namespace ld53::assets;
   using namespace ld53::game;
-  ecs.entity<Test>().emplace<ld53::render::ImageAsset>("test.png");
+  ecs.entity<Tutorial>().emplace<ld53::render::ImageAsset>("tutorial.png");
   ecs.entity<Tileset>().emplace<ld53::render::ImageAsset>("tileset.png");
 
   ecs.entity<Tileset::Grass>()

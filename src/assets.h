@@ -1,7 +1,7 @@
 #pragma once
 
 namespace ld53::assets {
-struct Test {};
+struct Tutorial {};
 struct Tileset {
   struct Grass {};
   struct GrassWithStone {};

@@ -38,12 +38,17 @@ struct RoomObjects {
 };
 
 struct Rooms {
-  struct TestRoom {};
+  struct Level1 {};
+  struct Level2 {};
+  struct Level3 {};
 };
 
 struct RoomInstances {};
 struct CurrentRoomType {};
 struct CurrentRoom {};
+
+struct NextRoom {};
+struct ChangeRoom {};
 
 void initRoom(flecs::world &ecs);
 } // namespace ld53::game

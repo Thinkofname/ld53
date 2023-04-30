@@ -5,6 +5,7 @@
 
 #include "assets.h"
 #include "game/common.h"
+#include "game/player.h"
 #include "web/render.h"
 
 namespace ld53::game {
@@ -59,6 +60,8 @@ struct Prefab {
 void initRoom(flecs::world &ecs) {
   ecs.component<RoomObjects>().add(EcsAlwaysOverride);
   ecs.component<Room>().add_second<RoomObjects>(flecs::With);
+  ecs.component<NextRoom>().add(flecs::Exclusive);
+  ecs.component<ChangeRoom>().add(flecs::Exclusive);
 
   auto grass = ecs.id<ld53::assets::Tileset::Grass>();
   auto top = ecs.id<ld53::assets::Tileset::TreeTop>();
@@ -103,51 +106,165 @@ void initRoom(flecs::world &ecs) {
       .add<render::Depth, render::Depth::Background>()
       .override<render::Depth, render::Depth::Background>();
 
-  makeRoom<Rooms::TestRoom>(ecs,
-                            "#^^^^^^^^^^^^^^^^^^#"
-                            "#                  #"
-                            "#   WWW   WWW      #"
-                            "#   WBW =-WBW      #"
-                            "#   W W | W W      #"
-                            "#   W W | W W      #"
-                            "#   B B | B B      #"
-                            "#    L--/  |       #"
-                            "#          |       #"
-                            "#                  #"
-                            "#                  #"
-                            "#                  #"
-                            "#                  #"
-                            "#                  #"
-                            "#vvvvvvvvvvvvvvvvvv#",
-                            {{' ', grass},
-                             {'v', top},
-                             {'#', both},
-                             {'^', bottom},
-                             {'B', wallBottom},
-                             {'W', wall},
-                             {'L', wireTR},
-                             {'-', wireLR},
-                             {'|', wireTB},
-                             {'/', wireTL},
-                             {'=', wireBR}})
-      .with(flecs::ChildOf, [&]() {
-        ecs.entity("MailTest")
-            .emplace<GridPosition>(10, 9)
-            .is_a<Prefab::Mail>();
-        ecs.entity().emplace<GridPosition>(5, 3).is_a<Prefab::Mailbox>();
-        ecs.entity().emplace<GridPosition>(14, 8).is_a<Prefab::Box>();
-        auto gate1 =
-            ecs.entity().emplace<GridPosition>(5, 6).is_a<Prefab::Gate>();
-        auto gate2 =
-            ecs.entity().emplace<GridPosition>(11, 6).is_a<Prefab::Gate>();
-        ecs.entity()
-            .emplace<GridPosition>(11, 9)
-            .is_a<Prefab::ButtonPlate>()
-            .add<ConnectedTo>(gate2);
-        ecs.entity()
-            .emplace<GridPosition>(11, 3)
-            .is_a<Prefab::ButtonPlate>()
-            .add<ConnectedTo>(gate1);
+  makeRoom<Rooms::Level3>(ecs,
+                          "#^^^^^^^^^^^^^^^^^^#"
+                          "#                  #"
+                          "#   WWW   WWW      #"
+                          "#   WBW =-WBW      #"
+                          "#   W W | W W      #"
+                          "#   W W | W W      #"
+                          "#   B B | B B      #"
+                          "#    L--/  |       #"
+                          "#          |       #"
+                          "#                  #"
+                          "#                  #"
+                          "#      WWWW        #"
+                          "#                  #"
+                          "#                  #"
+                          "#vvvvvvvvvvvvvvvvvv#",
+                          {{' ', grass},
+                           {'v', top},
+                           {'#', both},
+                           {'^', bottom},
+                           {'B', wallBottom},
+                           {'W', wall},
+                           {'L', wireTR},
+                           {'-', wireLR},
+                           {'|', wireTB},
+                           {'/', wireTL},
+                           {'=', wireBR}})
+      .with(flecs::ChildOf, [&]() {});
+  makeRoom<Rooms::Level2>(ecs,
+                          "#^^^^^^^^^^^^^^^^^^#"
+                          "#                  #"
+                          "#   WWW   WWW      #"
+                          "#   WBW =-WBW      #"
+                          "#   W W | W W      #"
+                          "#   W W | W W      #"
+                          "#   B B | B B      #"
+                          "#    L--/  |       #"
+                          "#          |       #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#vvvvvvvvvvvvvvvvvv#",
+                          {{' ', grass},
+                           {'v', top},
+                           {'#', both},
+                           {'^', bottom},
+                           {'B', wallBottom},
+                           {'W', wall},
+                           {'L', wireTR},
+                           {'-', wireLR},
+                           {'|', wireTB},
+                           {'/', wireTL},
+                           {'=', wireBR}})
+      .with(
+          flecs::ChildOf,
+          [&]() {
+            ecs.entity().emplace<GridPosition>(10, 9).is_a<Prefab::Mail>();
+            ecs.entity().emplace<GridPosition>(5, 3).is_a<Prefab::Mailbox>();
+            ecs.entity().emplace<GridPosition>(14, 8).is_a<Prefab::Box>();
+            auto gate1 =
+                ecs.entity().emplace<GridPosition>(5, 6).is_a<Prefab::Gate>();
+            auto gate2 =
+                ecs.entity().emplace<GridPosition>(11, 6).is_a<Prefab::Gate>();
+            ecs.entity()
+                .emplace<GridPosition>(11, 9)
+                .is_a<Prefab::ButtonPlate>()
+                .add<ConnectedTo>(gate2);
+            ecs.entity()
+                .emplace<GridPosition>(11, 3)
+                .is_a<Prefab::ButtonPlate>()
+                .add<ConnectedTo>(gate1);
+          })
+      .add<NextRoom, Rooms::Level3>();
+
+  makeRoom<Rooms::Level1>(ecs,
+                          "#^^^^^^^^^^^^^^^^^^#"
+                          "#                  #"
+                          "#   WWWWWWWWW      #"
+                          "#   WBBBBBBBW      #"
+                          "#   W       W      #"
+                          "#   WWWWWWW W      #"
+                          "#   BBBBBBB|B      #"
+                          "#         =/       #"
+                          "#         |        #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#                  #"
+                          "#vvvvvvvvvvvvvvvvvv#",
+                          {{' ', grass},
+                           {'v', top},
+                           {'#', both},
+                           {'^', bottom},
+                           {'B', wallBottom},
+                           {'W', wall},
+                           {'L', wireTR},
+                           {'-', wireLR},
+                           {'|', wireTB},
+                           {'/', wireTL},
+                           {'=', wireBR}})
+      .with(
+          flecs::ChildOf,
+          [&]() {
+            ecs.entity().emplace<GridPosition>(5, 4).is_a<Prefab::Mail>();
+            ecs.entity().emplace<GridPosition>(4, 8).is_a<Prefab::Mailbox>();
+
+            ecs.entity().emplace<GridPosition>(11, 9).is_a<Prefab::Box>();
+            auto gate1 =
+                ecs.entity().emplace<GridPosition>(11, 5).is_a<Prefab::Gate>();
+            ecs.entity()
+                .emplace<GridPosition>(10, 9)
+                .is_a<Prefab::ButtonPlate>()
+                .add<ConnectedTo>(gate1);
+
+            ecs.entity()
+                .emplace<Position>(0, 0)
+                .add<render::Image, assets::Tutorial>()
+                .add<render::Depth, render::Depth::Background>();
+          })
+      .add<NextRoom, Rooms::Level2>();
+
+  ecs.system<>("changeOnComplete")
+      .with<Room>()
+      .with<NextRoom>(flecs::Wildcard)
+      .each([](flecs::entity e) {
+        auto numToFill = e.world()
+                             .filter_builder<>()
+                             .with<MailBox>()
+                             .without<MailBox::Full>()
+                             .not_()
+                             .build()
+                             .count();
+        if (numToFill != 0)
+          return;
+        e.world().add<ChangeRoom>(e.target<NextRoom>());
+      });
+
+  ecs.system<>("changeRoom")
+      .with<ChangeRoom>(flecs::Wildcard)
+      .each([](flecs::entity e) {
+        auto ecs = e.world();
+        auto nextRoom = e.target<ChangeRoom>();
+        e.remove<ChangeRoom>(flecs::Wildcard);
+
+        auto room = ecs.entity().is_a(nextRoom).child_of<RoomInstances>();
+        auto prev = ecs.singleton<CurrentRoom>().target<CurrentRoom>();
+        ecs.add<CurrentRoom>(room);
+
+        e.world()
+            .entity<Player>()
+            .set<Position>({18 * 16, 7 * 16})
+            .set<GridPosition>({16, 7})
+            .set<GridPosition, Previous>({-1, -1})
+            .child_of(room);
+
+        prev.destruct();
       });
 }
 } // namespace ld53::game

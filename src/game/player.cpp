@@ -19,9 +19,9 @@ void initPlayer(flecs::world &ecs) {
       .member<bool>("left")
       .member<bool>("right");
 
-  auto room = ecs.entity().is_a<Rooms::TestRoom>().child_of<RoomInstances>();
+  auto room = ecs.entity().is_a<Rooms::Level1>().child_of<RoomInstances>();
   ecs.add<CurrentRoom>(room);
-  ecs.add<CurrentRoomType, Rooms::TestRoom>();
+  ecs.add<CurrentRoomType, Rooms::Level1>();
   ecs.entity<Player>()
       .emplace<Position>(18 * 16, 7 * 16)
       .emplace<GridPosition>(16, 7)
@@ -113,22 +113,9 @@ void initPlayer(flecs::world &ecs) {
         case input::InputType::Restart:
           if (data.pressed)
             return;
-          auto room = ecs.entity()
-                          .is_a(ecs.singleton<CurrentRoomType>()
-                                    .target<CurrentRoomType>())
-                          .child_of<RoomInstances>();
-          auto prev = ecs.singleton<CurrentRoom>().target<CurrentRoom>();
-          ecs.add<CurrentRoom>(room);
 
-          e.world()
-              .entity<Player>()
-              .set<Position>({18 * 16, 7 * 16})
-              .set<GridPosition>({16, 7})
-              .set<GridPosition, Previous>({-1, -1})
-              .child_of(room);
-
-          prev.destruct();
-
+          ecs.add<ChangeRoom>(
+              ecs.singleton<CurrentRoomType>().target<CurrentRoomType>());
           break;
         }
       });
