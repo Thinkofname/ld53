@@ -158,13 +158,16 @@ void on_image_load(emscripten::val param, emscripten::val event) {
 
 void buildRoom(flecs::entity e, const game::Room &room) {
   printf("Building render room\n");
-
+  auto ecs = e.world();
   auto document = emscripten::val::global("document");
   auto canvas = document.call<emscripten::val>("createElement",
                                                emscripten::val("canvas"));
 
   canvas.set("width", VIRTUAL_WIDTH);
   canvas.set("height", VIRTUAL_HEIGHT);
+
+  auto wall = ecs.id<ld53::assets::Tileset::Wall>();
+  auto wallBottom = ecs.id<ld53::assets::Tileset::WallBottom>();
 
   auto ctx = canvas.call<emscripten::val>("getContext", emscripten::val("2d"));
   for (int y = 0; y < game::ROOM_HEIGHT; y++) {
@@ -184,6 +187,20 @@ void buildRoom(flecs::entity e, const game::Room &room) {
       } else {
         ctx.call<void>("drawImage", tile.get<HTMLImage>()->image, x * 16,
                        y * 16);
+      }
+
+      // Lighting for walls
+      if (x > 0) {
+        auto side = room.get_tile(x - 1, y);
+        if (side == wall && tile != wall) {
+          bool top = tile == wallBottom ||
+                     (y > 0 && room.get_tile(x - 1, y - 1) != wall);
+          ctx.call<void>("drawImage", tile.get<HTMLImage>()->image, 6 * 16,
+                         (top ? 0 : 1) * 16, 16, 16, x * 16, y * 16, 16, 16);
+        } else if (side == wallBottom && (tile != wall && tile != wallBottom)) {
+          ctx.call<void>("drawImage", tile.get<HTMLImage>()->image, 6 * 16,
+                         2 * 16, 16, 16, x * 16, y * 16, 16, 16);
+        }
       }
     }
   }
