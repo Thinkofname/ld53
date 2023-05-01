@@ -308,13 +308,16 @@ void initGame(flecs::world &ecs) {
       .term_at(2)
       .src<Player>()
       .with<MailObject>()
+      .no_readonly()
       .each([](flecs::entity e, const GridPosition &grid,
                const GridPosition &playerPos) {
         auto player = e.world().entity<Player>();
         if (grid.x != playerPos.x || grid.y != playerPos.y ||
             player.has<Holding>(flecs::Any))
           return;
+        e.world().defer_suspend();
         player.add<Holding>(e);
+        e.world().defer_resume();
         e.disable();
       });
 
